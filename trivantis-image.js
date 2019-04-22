@@ -99,21 +99,21 @@ function ObjImageActionChangeContents( newImage, newOpacity ) {
   {
 	this.objLyr.theObjTag.src = newImage;
   }
-  else if (this.hasOuterShadow && is.svg)
+  else if (this.hasOuterShadow && (!is.ie8 && !is.ie9))
   {
 	this.objLyr.shadowObj.setAttribute('xlink:href', newImage);
   }
-  else if(this.hasOuterShadow && is.vml)
+  else if(this.hasOuterShadow && (is.ie8 || is.ie9))
   {
 	this.objLyr.shadowObj.src = newImage;
 	this.objLyr.shadowProp.src = newImage;
   }
   
-  if(this.hasReflection && is.svg)
+  if(this.hasReflection && (!is.ie8 && !is.ie9))
   {
 	this.objLyr.reflectObj.setAttribute('xlink:href', newImage);
   }
-  else if(this.hasReflection && is.vml)
+  else if(this.hasReflection && (is.ie8 || is.ie9))
   {
 	this.objLyr.reflectObj.src = newImage;
   }
@@ -311,12 +311,9 @@ p.initReflection = ObjInitReflection
 p.setDisabled = ObjSetDisabled
 p.setButtonOpacity = ObjSetButtonOpacity
 p.initImageMap = ObjInitImageMap
-p.setDegradations = ObjDegradeEffects
 }
 
 function ObjImageBuild() {
-  this.setDegradations();	//echo LD-768 : Check if we need to gracefully degrade effects
-
   if( this.bIsBtn ) this.capture |= 3;
 
   //echo bug 21564
@@ -328,7 +325,7 @@ function ObjImageBuild() {
   else
 	this.bIsWCAG = (document.getElementsByTagName("head")[0].innerHTML.indexOf("trivantis-focus.css")> -1)?true:false;
 	
-  if(is.vml)
+  if(is.ie8 || is.ie9)
 	var radians = this.originalShadowDirection * (Math.PI / 180.0);
   else
     var radians = this.outerShadowDirection * (Math.PI / 180.0);
@@ -338,7 +335,7 @@ function ObjImageBuild() {
   //Multiply by -1 because a negative offset means this shadow is in the positive y-direction on the screen
   var yOffset = -1 * this.outerShadowDepth * Math.sin(radians);
   
-  if(is.vml && !bEmbeddedIE8IE9Img)
+  if((is.ie8 || is.ie9) && !bEmbeddedIE8IE9Img)
   {
 	var adjustedXPos = this.ie8DivX;
 	var adjustedYPos = this.ie8DivY;
@@ -358,7 +355,7 @@ function ObjImageBuild() {
   if(this.hasOuterShadow || this.hasReflection || this.r>0 || this.vf == 1 || this.hf == 1)
 		bHasEffect =1;
 		
-  this.bSVGMap = ((this.hasOuterShadow || this.hasReflection) && is.svg)
+  this.bSVGMap = ((this.hasOuterShadow || this.hasReflection) && (!(is.ie8 || is.ie9)))
 
   if((!this.hasOnUp && !this.isChoice) || is.iOS || this.bIsWCAG)
 	this.bHasClickMap = false;
@@ -376,7 +373,7 @@ function ObjImageBuild() {
   
   if( !(this.hasOuterShadow) )
   {
-	if(is.svg)
+	if(!(is.ie8 || is.ie9))
 	  clipRect = 'clip: rect(0px ' + (this.w + (1 * Math.abs(xOffset))) + 'px ' + (this.h + (1 * Math.abs(yOffset))) + 'px 0px);';
 	  
 	this.css = buildCSS(this.name,adjustedXPos,adjustedYPos,adjustedWidth,adjustedHeight,this.v,this.z,null,clipRect);
@@ -384,7 +381,7 @@ function ObjImageBuild() {
     
   else if(this.hasOuterShadow)
   {
-	if(is.vml)
+	if(is.ie8 || is.ie9)
 	{	
 		if(this.vf == 1)
 			yOffset *= -1;
@@ -394,14 +391,14 @@ function ObjImageBuild() {
 		if(xOffset < 0 || yOffset < 0)
 		{
 			if(xOffset < 0 && yOffset >= 0)
-				clipRect = 'clip: rect(' + (-1 * this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (xOffset - this.outerShadowBlurRadius) + 'px);';
+				clipRect = 'clip: rect(' + 0 + 'px ' + (adjustedWidth + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (xOffset) + 'px);';
 			else if(xOffset >= 0 && yOffset < 0)
-				clipRect = 'clip: rect(' + (yOffset - this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (-1 * this.outerShadowBlurRadius) + 'px);';
+				clipRect = 'clip: rect(' + (yOffset) + 'px ' + (adjustedWidth + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + 0 + 'px);';
 			else
-				clipRect = 'clip: rect(' + (yOffset - this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (xOffset - this.outerShadowBlurRadius) + 'px);';
+				clipRect = 'clip: rect(' + (yOffset) + 'px ' + (adjustedWidth + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (xOffset) + 'px);';
 		}
 		else
-			clipRect = 'clip: rect(' + (-1 * this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (-1 * this.outerShadowBlurRadius) + 'px);';
+			clipRect = 'clip: rect(' + 0 + 'px ' + (adjustedWidth + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (2*this.borderWeight) + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + 0 + 'px);';
 	}
 	else
 	{		
@@ -444,8 +441,18 @@ function ObjImageBuild() {
 	this.css = tempStr;
   }
  
+ //Add opacity CSS
+ //echo bug 21681 and bug 21680 : Moving opacity filter to vml image tags for images with shadows
+  if(this.opacity >= 0 && this.opacity <= 100 && this.bDisableIe8Ie9Effects)
+  {
+	var tempStr = this.css.substring(0, this.css.length-2);
+	tempStr += addOpacityCSS(this.opacity);
+	tempStr += '}\n';
+	this.css = tempStr;
+  }
+  
   this.div = '';
-  if(this.hasReflection && !this.bDegradeReflection)
+  if(this.hasReflection && !this.bDisableIe8Ie9Effects)
   {	
 	var strIndex = this.css.indexOf("z-index:");
 	var zIndex = "auto";
@@ -464,7 +471,7 @@ function ObjImageBuild() {
   
 // Build DIV String: Div placement depends on Browser and if it has a shadow or not
 /*/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-  if(this.hasOuterShadow && is.svg)
+  if(this.hasOuterShadow && !is.ie8 && !is.ie9)
   {
 	this.div += addSvgShadowFilter(this.name, this.w, this.h, this.outerShadowDirection, this.outerShadowDepth, this.outerShadowOpacity, this.shadowRed, this.shadowGreen, this.shadowBlue, this.outerShadowBlurRadius, this.shadowType); 
   }
@@ -481,7 +488,7 @@ function ObjImageBuild() {
   if(this.hasOnUp && this.bIsWCAG && is.ie) this.divInt += ' href="javascript:' + this.name + '.onUp(null)"'
   this.divInt += '>'
   
-  if(bEmbeddedIE8IE9Img || !bHasEffect || (!is.bUseVML && is.vml) ||(!this.hasOuterShadow && is.svg))
+  if(bEmbeddedIE8IE9Img || ((!this.hasOuterShadow || !bHasEffect) && !is.ie8 && !is.ie9))
   {
 	  this.divInt += '<img name="'+this.name+'Img" id="'+this.name+'Img" src="'+this.imgSrc
 	  if(this.altName) this.divInt += '" alt="'+this.altName+'" aria-label="'+this.altName
@@ -498,7 +505,7 @@ function ObjImageBuild() {
 	  if( this.bHasClickMap)
 		this.divInt += addImageMapCoords(this);
   }
-  else if(!this.hasOuterShadow && is.vml)
+  else if(!this.hasOuterShadow && (is.ie8 || is.ie9))
   {
   
 	var altTag = ''
@@ -535,7 +542,7 @@ function ObjImageBuild() {
   }
 //Applies SVG shadow to images on non ie8 and ie9 browsers
 /*/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-  else if(this.hasOuterShadow && is.svg)
+  else if(this.hasOuterShadow && !is.ie8 && !is.ie9)
   {	
 	this.divInt += '<svg width="' + adjustedWidth + 'px" height="' + adjustedHeight + 'px"'
 	
@@ -618,7 +625,7 @@ function ObjImageBuild() {
 //In IE8 and IE9, two images are needed to produce a shadow with opacity, blur, and color. The image on top is being rotated by a VML attribute. 
 //The image on the bottom is producing the shadow and shadow blur. 
 /*/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-  else if(this.hasOuterShadow && is.vml)
+  else if(this.hasOuterShadow && (is.ie8 || is.ie9))
   {	
 	if(this.vf == 1)
 		this.r = 360 - this.r;	//echo bug 20394: ie8 and ie9 rotate then flip the image. In Lectora V12 and all other browsers flip first, then rotate.
@@ -629,7 +636,7 @@ function ObjImageBuild() {
 	var xOffset = this.outerShadowDepth * Math.cos(radians);
 	//Multiply by -1 because a negative offset means this shadow is in the positive y-direction on the screen
 	var yOffset = -1 * this.outerShadowDepth * Math.sin(radians);
-	var blurRadius = (1.0*this.outerShadowBlurRadius);
+	var blurRadius = (1.0*this.outerShadowBlurRadius) - 2.0;
 	
 	xOffset = xOffset.toFixed(5);
 	yOffset = yOffset.toFixed(5);
@@ -663,7 +670,7 @@ function ObjImageBuild() {
 	this.divInt += '">\n'	
 	this.divInt += '</v:image>\n' 
 	
-	if(!this.bDegradeShadow)
+	if(!this.bDisableIe8Ie9Effects)
 	{
 		this.divInt += '<v:image src="' + this.imgSrc + '" id="'+this.name+'Shadow" style="z-index:0; position:absolute;width:' + this.w + 'px;height:' + this.h + 'px;rotation:' + this.r + ';'	
 		
@@ -716,7 +723,7 @@ function ObjImageActivate() {
   }
   else this.objLyr.write( this.divInt );
   
-  if(this.objLyr.ele != null && this.bHasClickMap && is.svg)
+  if(this.objLyr.ele != null && this.bHasClickMap && !is.ie8 && !is.ie9)
 	this.objLyr.ele = this.objLyr.event = document.getElementById(this.name+"MapArea");
   else if(this.objLyr.ele == null)
 	this.objLyr.ele = this.objLyr.event = document.getElementById(this.name+"Img");
@@ -752,7 +759,7 @@ function ObjImageActivate() {
   {
 	if( this.v ) this.actionShow()
 	//BG-860 Beta Only Fix
-	if(this.v ==0 && (is.awesomium || is.vml))
+	if(this.v ==0 && (is.awesomium || is.ie8 || is.ie9))
 	{
 		if(this.objLyr.reflectDiv)
 		{
@@ -761,24 +768,6 @@ function ObjImageActivate() {
 			this.objLyr.reflectDiv.style.visibility = "hidden";
 		}
 	}
-  }
-  
-  //echo LD-985 : This bug affects only IE9 native opacity; Moved all image opacity to here for better maintenance.
-  if(is.ie9Native && !isNaN(this.opacity) && this.opacity < 100)
-  {
-	var opacity = this.opacity;
-	this.objLyr.styObj.opacity = "";
-	var imageTag = document.getElementById(this.name + "Img");
-	var imageStyleFilter = imageTag.style.filter;
-	imageStyleFilter = imageStyleFilter + " alpha(opacity=" + opacity + ")";
-	
-	imageTag.style.filter = imageStyleFilter;
-  }
-  else if(!is.ie9Native && !isNaN(this.opacity) && this.opacity < 100)
-  {
-	var opacity = this.opacity;
-	var divFilter = this.objLyr.styObj.filter;
-	this.objLyr.styObj.filter = divFilter.length == 0 ? "filter: alpha(opacity=" + opacity + ")" : " alpha(opacity=" + opacity + ")";
   }
 }
 
@@ -913,6 +902,9 @@ function ObjInitShadow(direction, depth, opacity, redHex, greenHex, blueHex, red
 
 function ObjInitOpacity(opacity){
 	this.opacity = this.opacityNorm = opacity;
+	
+	//echo bug 21691 : Graceful Degradation
+	this.bDisableIe8Ie9Effects = (is.ie8 || is.ie9) && (opacity < 100 || this.r > 0 || this.vf == 1 || this.hf == 1) ? true : false;
 }
 
 function ObjSetButtonOpacity( opacityNorm, opacityOvr, opacityDn, opacityDis )
@@ -977,7 +969,6 @@ function ObjInitHasShadow(boolVal){
 		this.shadowBlueHex = null;
 		this.outerShadowBlurRadius = 0;
 		this.shadowType = null; 
-		this.originalShadowDirection = 0;
 	}
 }
 
@@ -1066,36 +1057,3 @@ function ObjInitImageMap(boolVal, str, str2)
 }
 
 
-//echo bug 21691 : Graceful Degradation
-//echo LD-768 : Putting all degradation rules for IE into this function
-function ObjDegradeEffects()
-{
-	this.bDegradeShadow = false;
-	this.bDegradeReflection = false;
-	
-	if(is.vml)
-	{
-		if(!is.DXFilterSupported){
-			this.bDegradeShadow = true;
-			this.bDegradeReflection = true;		
-			return;
-		}
-		if(this.opacity < 100){
-			this.bDegradeShadow = true;
-			this.bDegradeReflection = true;
-			return;
-		}
-		if(this.r > 0){
-			this.bDegradeShadow = true;
-			this.bDegradeReflection = true;
-			return;
-		}
-		if(this.vf == 1 || this.hf == 1){
-			this.bDegradeShadow = true;
-			this.bDegradeReflection = true;
-			return;
-		}
-	}
-	
-	return;
-}

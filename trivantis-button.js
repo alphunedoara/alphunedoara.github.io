@@ -25,30 +25,6 @@ function ObjButton(n,a,x,y,w,h,v,z,d,cl,act) {
     this.divTag = "div";
   this.addClasses = cl;
   this.hasAct = act;
-  
-  this.hasOuterShadow = false;
-  this.outerShadowDirection = 0;
-  this.outerShadowDepth = 0;
-  this.outerShadowOpacity = 0;
-  this.shadowRed = 0;
-  this.shadowGreen = 0;
-  this.shadowBlue = 0;
-  this.shadowRedHex = null;
-  this.shadowGreenHex = null; 
-  this.shadowBlueHex = null;
-  this.outerShadowBlurRadius = 0;
-  this.shadowType = null; 
-  
-  this.hasReflection = false;
-  this.reflectedImageX = 0;
-  this.reflectedImageY = 0;
-  this.reflectedImageWidth = 0;
-  this.reflectedImageHeight = 0;
-  this.reflectedImageOffset = 0;
-  this.reflectedImageFadeRate = 0;
-  this.reflectionSeparation = 0;
-  this.reflectionPosDiffY	= 0;
-  this.reflectionPosDiffX	= 0;
 }
 
 function ObjButtonActionGoTo( destURL, destFrame ) {
@@ -165,7 +141,6 @@ p.addOpacity = ObjInitOpacity
 p.addShadow = ObjInitShadow
 p.initImageMap = ObjInitImageMap
 p.addClickMap = ObjAddClickMap
-p.setDegradations = ObjDegradeEffects
 }
 
 function ObjButtonSetStateOpacity( imgOff, imgOn, imgRoll, imgDisabled )
@@ -206,7 +181,6 @@ function ObjButtonSetDisable( bSet )
 }
 
 function ObjButtonBuild() {
-  this.setDegradations();	//echo LD-768 : Check if we need to gracefully degrade effects
 	
   var adjustedXPos = this.x;
   var adjustedYPos = this.y;
@@ -219,13 +193,7 @@ function ObjButtonBuild() {
   //Multiply by -1 because a negative offset means this shadow is in the positive y-direction on the screen
   var yOffset = -1 * this.outerShadowDepth * Math.sin(radians);
   
-  if(document.head)
-	this.bIsWCAG = (document.head.innerHTML.indexOf("trivantis-focus.css")> -1)?true:false;
-  else
-	this.bIsWCAG = (document.getElementsByTagName("head")[0].innerHTML.indexOf("trivantis-focus.css")> -1)?true:false;
-  
-  
-  if(is.vml && this.bCanRotate)
+  if((is.ie8 || is.ie9))
   {
 	adjustedXPos = this.ie8DivX;
 	adjustedYPos = this.ie8DivY;	
@@ -233,16 +201,16 @@ function ObjButtonBuild() {
 	adjustedHeight = this.ie8DivHeight;
   }
   
-  if(this.hasOuterShadow && is.svg)
+  if(this.hasOuterShadow && !(is.ie8 || is.ie9))
   {
 	adjustedWidth = this.w + (1 * Math.abs(xOffset)) + this.outerShadowBlurRadius;
 	adjustedHeight = this.h + (1 * Math.abs(yOffset)) + this.outerShadowBlurRadius;
 	
-	if(xOffset < 0 && is.svg)
+	if(xOffset < 0 && (!is.ie8 && !is.ie9))
 	{	
 		adjustedXPos = this.x  + (1 * (xOffset - this.outerShadowBlurRadius)) + ((xOffset<0 && yOffset<0)?1:0); //There is a 1 pixel rounding error for offset in both directions
 	}
-	if(yOffset < 0 && is.svg)
+	if(yOffset < 0 && (!is.ie8 && !is.ie9))
 	{	
 		adjustedYPos = this.y + (1 * (yOffset - this.outerShadowBlurRadius));
 	}
@@ -251,17 +219,17 @@ function ObjButtonBuild() {
   if(!this.name.indexOf("button")>-1)
 	adjustedWidth +=3;
 
-  if (this.str_SvgMapPath && !is.iOS && is.bSupportsClickMap && !this.bIsWCAG)
+  if(this.str_SvgMapPath && (!(is.ie8 || is.ie9)) && !is.iOS)
 	this.bHasClickMap = true;
   else
 	this.bHasClickMap = false;
 	
-  this.bSVGMap = this.bHasClickMap;
+  this.bSVGMap = (this.bHasClickMap && (!(is.ie8 || is.ie9)));
   	
   AdjustClickPointsForAct(this);
   
   var clipRect ='';
-  if(is.svg)
+  if(!(is.ie8 || is.ie9))
   {
     if( this.hasOuterShadow && this.outerShadowDepth == 0 )
 	  clipRect = 'clip: rect(0px ' + (adjustedWidth  + (2*this.outerShadowBlurRadius) + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight  + (2*this.outerShadowBlurRadius) + (1 * Math.abs(yOffset))) + 'px 0px);';
@@ -270,18 +238,22 @@ function ObjButtonBuild() {
     else
 	  clipRect = 'clip: rect(0px ' + (adjustedWidth + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (1 * Math.abs(yOffset))) + 'px 0px);';
   }
-  if(is.vml)
+  if(is.ie8 || is.ie9)
   {
+	//echo bugs 21644|21640 : Graceful degradation for V12 release.
+	if(is.ie8 || this.r > 0)
+		this.hasOuterShadow = false;
+  
 	if(this.hasOuterShadow)
 	{
 		if(xOffset <= 0 && yOffset >= 0)
-			clipRect = 'clip: rect(' + (-1 * this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (xOffset - this.outerShadowBlurRadius) + 'px);';
+			clipRect = 'clip: rect(' + (-1 * this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (1 * Math.abs(yOffset))) + 'px ' + (xOffset - this.outerShadowBlurRadius) + 'px);';
 		else if(xOffset >= 0 && yOffset <= 0)
-			clipRect = 'clip: rect(' + (yOffset - this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (-1 * this.outerShadowBlurRadius) + 'px);';
+			clipRect = 'clip: rect(' + (yOffset - this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (1 * Math.abs(yOffset))) + 'px ' + (-1 * this.outerShadowBlurRadius) + 'px);';
 		else if(xOffset <= 0 && yOffset <= 0)
-			clipRect = 'clip: rect(' + (yOffset - this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (xOffset - this.outerShadowBlurRadius) + 'px);';
+			clipRect = 'clip: rect(' + (yOffset - this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (1 * Math.abs(yOffset))) + 'px ' + (xOffset - this.outerShadowBlurRadius) + 'px);';
 		else 
-			clipRect = 'clip: rect(' + (-1 * this.outerShadowBlurRadius) + 'px ' + (adjustedWidth + this.outerShadowBlurRadius + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + this.outerShadowBlurRadius + (1 * Math.abs(yOffset))) + 'px ' + (-1 * this.outerShadowBlurRadius) + 'px);';
+			clipRect = 'clip: rect(' + 0 + 'px ' + (adjustedWidth + (1 * Math.abs(xOffset))) + 'px ' + (adjustedHeight + (1 * Math.abs(yOffset))) + 'px ' + 0 + 'px);';
 	}
   }
   
@@ -295,7 +267,7 @@ function ObjButtonBuild() {
    
   var IERotation = '';
   
-  if(is.svg)
+  if(!(is.ie8 || is.ie9))
   {
 	  if(this.r > 0)
 	  {
@@ -307,23 +279,26 @@ function ObjButtonBuild() {
 		this.css = tempStr;
 	  }
   }
-  else if(is.vml && !this.hasOuterShadow)
+  else if((is.ie8 || is.ie9) && !this.hasOuterShadow)
   {
 	if(this.r > 0)
 	{
-		if( this.r%360 > 0 && is.ie8 && this.bCanRotate)
-		{
-			 var radians = this.r * (Math.PI / 180.0);
-			 var cosTheta = Math.cos(radians);
-			 var sinTheta = Math.sin(radians);
+		if(is.ie8 || is.ie9)
+		{	
+			if( this.r%360 > 0 && is.ie8)
+			{
+				 var radians = this.r * (Math.PI / 180.0);
+				 var cosTheta = Math.cos(radians);
+				 var sinTheta = Math.sin(radians);
 
-			IERotation = 'filter: ';
-			
-			IERotation += ' progid:DXImageTransform.Microsoft.Matrix(sizingMethod=\'auto expand\',M11='+cosTheta+', M12='+((-1)*sinTheta)+', M21='+sinTheta+', M22='+cosTheta+');'
-		}
-		if(this.r > 0 && is.ie9)
-		{
-			IERotation += '-ms-transform:rotate('+ this.r +'deg);'
+				IERotation = 'filter: ';
+				
+				IERotation += ' progid:DXImageTransform.Microsoft.Matrix(sizingMethod=\'auto expand\',M11='+cosTheta+', M12='+((-1)*sinTheta)+', M21='+sinTheta+', M22='+cosTheta+');'
+			}
+			if(this.r > 0 && is.ie9)
+			{
+				IERotation += '-ms-transform:rotate('+ this.r +'deg);'
+			}
 		}
 	}
   
@@ -351,7 +326,7 @@ function ObjButtonBuild() {
 	var zIndex = "auto";
 	if(strIndex >=0)
 	{
-		zIndex = this.z;
+		zIndex = this.css.substring(strIndex+8,strIndex+9);
 	}
     this.divReflect = addReflection(this.name, this.imgOffSrc, this.reflectedImageX, this.reflectedImageY, this.reflectedImageWidth, 
 									this.reflectedImageHeight, this.r, this.reflectedImageOffset, this.reflectedImageFadeRate, this.v, this.vf, this.hf, 
@@ -361,7 +336,7 @@ function ObjButtonBuild() {
 	this.div += this.divReflect;
   }
   
-  if(this.hasOuterShadow && is.svg)
+  if(this.hasOuterShadow && !is.ie8 && !is.ie9)
   {
 	this.div += addSvgShadowFilter(this.name, this.w, this.h, (this.outerShadowDirection + this.r), this.outerShadowDepth, this.outerShadowOpacity, this.shadowRed, this.shadowGreen, this.shadowBlue, this.outerShadowBlurRadius, this.shadowType); 
   }
@@ -374,11 +349,11 @@ function ObjButtonBuild() {
 	this.div += 'title="" alt="" ';
   
   //Applies SVG shadow to images on non ie8 and ie9 browsers
-  if(this.hasOuterShadow && is.svg)
+  if(this.hasOuterShadow && !is.ie8 && !is.ie9)
   {	
 	this.divShadow = ObjSVGShadow(adjustedWidth, adjustedHeight, xOffset, yOffset, this);
   } 
-  else if(this.hasOuterShadow && is.vml)
+  else if(this.hasOuterShadow && (is.ie8 || is.ie9))
   {
 	//In IE8 and IE9, two images are needed to produce a shadow with opacity, blur, and color. The image on top is being rotated by a VML attribute. 
 	//The image on the bottom is producing the shadow and shadow blur.  
@@ -386,7 +361,7 @@ function ObjButtonBuild() {
 	var xOffset = this.outerShadowDepth * Math.cos(radians);
 	//Multiply by -1 because a negative offset means this shadow is in the positive y-direction on the screen
 	var yOffset = -1 * this.outerShadowDepth * Math.sin(radians);
-	var blurRadius = (1.0*this.outerShadowBlurRadius);
+	var blurRadius = (1.0*this.outerShadowBlurRadius) - 2.0;
 	
 	xOffset = xOffset.toFixed(5);
 	yOffset = yOffset.toFixed(5);
@@ -417,7 +392,6 @@ function ObjButtonBuild() {
   if(!this.hasOuterShadow)
   {
 	this.divInt += '<img name="'+this.name+'Img" src="'+this.imgOffSrc+'"'
-	this.divInt += document.documentMode < 8 ? 'style="position:absolute;"' : ''
 	this.divInt += ' width='+this.w+' height='+this.h
 	this.divInt += '></img>'
 		
@@ -428,7 +402,7 @@ function ObjButtonBuild() {
 
 	
   //Button Click Mapping -- See rev 50983
-  if(is.svg && this.bHasClickMap)
+  if(!is.ie8 && !is.ie9 && this.bHasClickMap)
   {
 	this.divInt += this.addClickMap(adjustedWidth, adjustedHeight, xOffset, yOffset, this);
   }
@@ -454,28 +428,26 @@ function ObjButtonActivate() {
   } 
   else this.objLyr.write( this.divInt );
   
-  if(this.objLyr.ele != null && is.svg && this.bHasClickMap)
+  if(this.objLyr.ele != null && !is.ie8 && !is.ie9 && this.bHasClickMap)
 	this.objLyr.ele = this.objLyr.event = document.getElementById(this.name+"MapArea");
   
-  if( !is.iOS )//bug11459 bug21967
+  if( !is.iOS && ( this.bHasClickMap || is.ie8 || is.ie9 ) )//bug11459
   {
 	if( !(is.ie8 || is.ie9) ) //21165 double firing actions
 		this.objLyr.ele.onUp = new Function(this.obj+".onUp(); return false;")
 	this.objLyr.ele.onmouseout = new Function(this.obj+".out(); return false;")
 	this.objLyr.ele.onmousedown = new Function("event", this.obj+".down(event); return false;")
 	this.objLyr.ele.onmouseover = new Function(this.obj+".over(); return false;")
-	
-	//echo bug 22100 : If WCAG is enabled, then the button tag's onClick attribute handles the call to the up function. 
-	if( !(is.ie8 || is.ie9) && this.bHasClickMap) //21165 double firing actions
+	if( !(is.ie8 || is.ie9) ) //21165 double firing actions
 		this.objLyr.ele.onmouseup = new Function("event", this.obj+".up(event); return false;")
 	
 	//echo bug 21644
 	var THIS = this;
 	
-	//echo bug 22100: Changed the condition from is.bSupportsClickMap to this.bHasClickMap because the event listener should not be added if WCAG is enabled.
-	if (this.bHasClickMap)
+	if(!(is.ie8 || is.ie9))
 	{
-		document.getElementById(this.name+"btn").addEventListener("keypress", function(e){
+		if ( document.getElementById(this.name+"btn").addEventListener ) 
+			document.getElementById(this.name+"btn").addEventListener("keypress", function(e){
 																			if(THIS.hasAct && THIS.hasOnUp && (e.keyCode == 13 || e.keyCode == 32)) 
 																				THIS.onUp();
 																			 return false;}, true);
@@ -503,7 +475,7 @@ function ObjButtonActivate() {
   {
 	if( this.v ) this.actionShow()
 
-	if(this.v ==0 && (is.awesomium || is.vml))
+	if(this.v ==0 && (is.awesomium || is.ie8 || is.ie9))
 	{
 		if(this.objLyr.reflectDiv)
 		{
@@ -553,8 +525,7 @@ function ObjButtonUp(e) {
     }
   }
   
-  //echo LD-958 : onUp is for left mouse button events only. 
-  if(this.hasAct && this.hasOnUp && (e.button == 0 || e.button == 1))
+  if(this.hasAct && this.hasOnUp)
 	this.onUp();
 }
 
@@ -586,23 +557,10 @@ function ObjButtonChange(img) {
   
   if (this.objLyr) 
   {
-	if(is.svg)
+	if(!(is.ie8 || is.ie9))
 		this.objLyr.objDiv.style.opacity = opacity;
-	else if(is.vml && opacity < 1)
+	else
 		this.objLyr.objDiv.style.setAttribute("filter", 'alpha(opacity='+opacity*100+')');
-	else if(is.vml && opacity == 1 && this.objLyr.objDiv.style.filter)
-	{
-		var strFilter = this.objLyr.objDiv.style.filter;
-		var startIndex = strFilter.indexOf("alpha(opacity=");
-		
-		if(strFilter.length > 0 && startIndex != -1)
-		{
-			var endIndex = strFilter.indexOf(')', startIndex);
-
-			if(endIndex != -1)
-				this.objLyr.objDiv.style.filter = strFilter.substr(0, startIndex) + strFilter.substr(endIndex + 1, strFilter.length - endIndex);
-		}
-	}
   
 	if(this.hasReflection)
 		this.objLyr.reflectDiv.style.opacity = opacity;
@@ -611,21 +569,21 @@ function ObjButtonChange(img) {
 	{
 		this.objLyr.doc.images[this.name+"Img"].src = img;
 	}
-	else if (this.hasOuterShadow && is.svg)
+	else if (this.hasOuterShadow && (!is.ie8 && !is.ie9))
 	{
 		this.objLyr.shadowObj.setAttribute('xlink:href', img);
 	}
-	else if(this.hasOuterShadow && is.vml)
+	else if(this.hasOuterShadow && (is.ie8 || is.ie9))
 	{
 		this.objLyr.shadowObj.src = img;
 		this.objLyr.shadowProp.src = img;
 	}
   
-	if(this.hasReflection && is.svg)
+	if(this.hasReflection && (!is.ie8 && !is.ie9))
 	{
 		this.objLyr.reflectObj.setAttribute('xlink:href', img);
 	}
-	else if(this.hasReflection && is.vml)
+	else if(this.hasReflection && (is.ie8 || is.ie9))
 	{
 		this.objLyr.reflectObj.src = img;
 	}
@@ -740,6 +698,13 @@ function ObjInitShadow(direction, depth, opacity, redHex, greenHex, blueHex, red
 
 function ObjInitOpacity(opacity){
 	this.opacity = this.opacityNorm = opacity;
+	
+	//echo bug 21691 : Graceful Degradation
+	if( (is.ie8 || is.ie9) && (this.r > 0 || this.opacity < 100 || this.hf == 1 || this.vf == 1) )
+	{
+		this.hasOuterShadow = false;
+		this.hasReflection = false;
+	}
 }
 
 function ObjInitHasShadow(boolVal){
@@ -976,44 +941,4 @@ function ObjAddClickMap(objWidth, objHeight, xOffset, yOffset, thisObj)
 	str += '</div>\n'
 	
 	return str;
-}
-
-//echo LD-768 : Putting all degradation rules for IE into this function
-//echo bug 21691 : Graceful Degradation
-function ObjDegradeEffects()
-{
-	//echo LD-838 : We use a css rotation for IE9 and a direct-x filter for rotation in IE8. 
-	//              So the check for is.DXFilterSupported will not tell us if an IE browser in compatibility mode supports the way we do rotation.
-	if(this.name.indexOf("audio") > -1)
-		this.bCanRotate = false;
-	else if(is.vml && is.ie8 && !is.DXFilterSupported)
-		this.bCanRotate = false;
-	else
-		this.bCanRotate = true;
-
-	if(is.vml)
-	{
-		if(!is.DXFilterSupported){
-			this.hasOuterShadow = false;
-			this.hasReflection = false;		
-		}
-		if(this.opacity < 100){
-			this.hasOuterShadow = false;
-			this.hasReflection = false;
-		}
-		if(this.r > 0){
-			this.hasOuterShadow = false;
-			this.hasReflection = false;
-		}
-		if(this.vf == 1 || this.hf == 1){
-			this.hasOuterShadow = false;
-			this.hasReflection = false;
-		}
-		if(is.ie8)
-		{
-			this.hasOuterShadow = false;
-		}
-	}
-	
-	return;
 }

@@ -109,7 +109,6 @@ function ObjLayer(id,pref,frame) {
   this.theObj = null;
   this.theObjTag = null;
   this.objDiv = null;
-  this.eTran = -1;
 }
 
 function ObjLayerMoveTo(x,y) {
@@ -172,8 +171,8 @@ function ObjLayerClipInit(t,r,b,l) {
 	{
 		var effectAdjX = 0;
 		var effectAdjY = 0;
-		var effectAdjW = (typeof(this.ele.offsetWidth) == 'undefined' || this.ele.offsetWidth <=0)?this.theObj.w:this.ele.offsetWidth;
-		var effectAdjH = (typeof(this.ele.offsetHeight) == 'undefined' || this.ele.offsetHeight<=0)?this.theObj.h:this.ele.offsetHeight;;
+		var effectAdjW = (this.ele.offsetWidth <=0)?this.theObj.w:this.ele.offsetWidth;
+		var effectAdjH = (this.ele.offsetHeight<=0)?this.theObj.h:this.ele.offsetHeight;;
 		
 		if(this.theObj.name.indexOf("text") > -1) //TXT Obj Adj
 		{
@@ -278,12 +277,6 @@ function ObjLayerClipInit(t,r,b,l) {
 				hOffset = Math.abs(yOffset);
 				wOffset = Math.abs(xOffset);
 			}
-			else if(this.theObj.name.indexOf("button") >-1)
-			{
-				//BTN Adjustments
-				effectAdjW += 5;
-				effectAdjH += 2;	
-			}
 			effectAdjX = ((xOffset<0)?xOffset:0);
 			effectAdjY = ((yOffset<0)?yOffset:0);
 			effectAdjW += wOffset;
@@ -301,48 +294,26 @@ function ObjLayerClipTo(t,r,b,l) {
   try{ this.styObj.clip = "rect("+t+"px "+r+"px "+b+"px "+l+"px)" } catch(e){}
 }
 
-function ObjLayerShowAudio(xPos){
-	if(xPos && this.styObj){
-		this.styObj.left = xPos.toString() + "px";
-		this.styObj.visibility = "visible";  //echo LD-975: Move the audio object WAY off of the page if it's initially hidden. Always keep the flash window visible. 
-											 //JB the audio can't be played in IE if it is not visible, and customers do this all the time.
-	}
-}
-
-function ObjLayerHideAudio(){
-  if( this.styObj ){ 
-	this.styObj.left = "10000px";
-	this.styObj.visibility = "visible";  //echo LD-975: Move the audio object WAY off of the page if it's initially hidden. Always keep the flash window visible. 
-										 //JB the audio can't be played in IE if it is not visible, and customers do this all the time.
-  }
-}
-
 function ObjLayerShow() {
   if( this.styObj ) 
   {
 	this.styObj.visibility = "inherit";
 	if(this.theObj && parseFloat(this.styObj.opacity) != parseFloat(this.theObj.opacity/100.0))
-	{
-		if(!(is.ie8 || is.ie9))
-			this.styObj.opacity = this.theObj.opacity/100.0;
-	}
+		this.styObj.opacity = this.theObj.opacity/100.0;
   }
   if(this.reflectDiv) 
   {
 	this.reflectDiv.style.visibility = "inherit";  
 	
-	if(this.eTran ==-1)
-	{
-		//echo bug 21701
-		if(!(is.ie8 || is.ie9))
-			this.reflectDiv.style.opacity = this.theObj.opacity/100.0;
-	}
+	//echo bug 21701
+	if(!(is.ie8 || is.ie9))
+		this.reflectDiv.style.opacity = this.theObj.opacity/100.0;
   }
 }
 
 function ObjLayerHide() {
   if( this.styObj ) this.styObj.visibility = "hidden";
-  if(this.reflectDiv && this.eTran == -1) this.reflectDiv.style.visibility = "hidden";
+  if(this.reflectDiv) this.reflectDiv.style.visibility = "hidden";
 }
 var __Triv_GoToNextPage__ = "";//FPFP: BUG20811
 function ObjLayerActionGoTo( destURL, destFrame, subFrame, bFeed ) {
@@ -438,14 +409,6 @@ function ObjLayerActionHide( ) {
     this.hide();
 }
 
-function ObjLayerActionShowAudio(xPos){
-	this.showAudio(xPos);
-}
-
-function ObjLayerActionHideAudio() {
-	this.hideAudio();
-}
-
 function ObjLayerActionLaunch( ) {
 }
 
@@ -475,16 +438,12 @@ p.clipInit = ObjLayerClipInit
 p.clipTo = ObjLayerClipTo
 p.show = ObjLayerShow
 p.hide = ObjLayerHide
-p.showAudio = ObjLayerShowAudio
-p.hideAudio = ObjLayerHideAudio
 p.actionGoTo = ObjLayerActionGoTo
 p.actionGoToNewWindow = ObjLayerActionGoToNewWindow
 p.actionPlay = ObjLayerActionPlay
 p.actionStop = ObjLayerActionStop
 p.actionShow = ObjLayerActionShow
 p.actionHide = ObjLayerActionHide
-p.actionShowAudio = ObjLayerActionShowAudio
-p.actionHideAudio = ObjLayerActionHideAudio
 p.actionLaunch = ObjLayerActionLaunch
 p.actionExit = ObjLayerActionExit
 p.actionChangeContents = ObjLayerActionChangeContents
@@ -492,7 +451,6 @@ p.actionTogglePlay = ObjLayerActionTogglePlay
 p.isVisible = ObjLayerIsVisible
 p.write = ObjLayerWrite
 p.hackForNS4 = ObjLayerHackForNS4
-p.getEle = ObjLayerGetElement
 }
 
 // InitObjLayers Function
@@ -554,24 +512,6 @@ function ObjLayerHackForNS4() {
   }
 }
 
-function ObjLayerGetElement(tag){
-	if(tag.indexOf("div") >-1)
-	{
-		if(this.isSVG)
-		{
-			return this.objDiv;
-		}
-		else
-		{
-			return this.ele;
-		}
-	}
-	if(tag.indexOf("reflection") >-1)
-	{
-		return this.reflectDiv;
-	}
-}
-
 function ObjLayerWrite(html) {
   this.event.innerHTML = html
 }
@@ -592,11 +532,9 @@ function BrowserProps() {
   this.ie = (name=="ie" && this.v>=4)
   this.ie6 = (this.ie && navigator.appVersion.indexOf('MSIE 6')>0)
   if( this.ie ) this.v = parseInt( navigator.appVersion.substr( navigator.appVersion.indexOf('MSIE') + 5),10);
-  this.quirksMode = (this.ie && document.documentMode == 5);
-  this.ie8 = (this.ie && (document.documentMode == 8 || document.documentMode == 7 || document.documentMode == 6 || document.documentMode == 5));	//echo LD-774 : This is a bit of a hack but any document modes less than 8 will run through the same logic as IE8. 
-  this.ie9 = (this.ie && document.documentMode == 9);
-  this.ie9Native = (this.ie && navigator.userAgent.indexOf("MSIE 9.0") != -1 && navigator.userAgent.indexOf("Trident/5.0") != -1);
-  this.ie10 = (this.ie && document.documentMode == 10);
+  this.ie8 = (ua.indexOf("msie 8.0") != -1);
+  this.ie9 = (ua.indexOf("msie 9.0") != -1);
+  this.ie10 = (ua.indexOf("msie 10.0") != -1);
   this.gecko = (ua.indexOf("gecko") != -1);
   this.firefox = (ua.indexOf("firefox") != -1);
   this.ieMac = (this.ie && navigator.platform.indexOf("Mac") >= 0 )
@@ -609,28 +547,8 @@ function BrowserProps() {
   this.chrome = ua.indexOf("chrome") != -1;
   this.webkit = ua.indexOf(" applewebkit/") != -1;
   this.safari = ( navigator.vendor && navigator.vendor.indexOf('Apple') >= 0 ? true : false );
-  this.iOSSafari = (this.safari && this.iOS);
   this.android = ua.indexOf("android") != -1;
   this.awesomium = ua.indexOf("awesomium") != -1;
-  this.bSupportsClickMap = (!this.ie || // All non-IE browsers support click map
-                             (!this.ie9 &&
-                                document.createElementNS != undefined &&
-                                document.createElementNS("http://www.w3.org/2000/svg", "path") &&
-                                document.createElement("BUTTON").addEventListener != undefined)); // and most recent IE browsers do to 
-
-  if ( (this.ie8 || this.ie9) && document.namespaces && !document.namespaces['v'] )
-    document.namespaces.add('v', 'urn:schemas-microsoft-com:vml', "#default#VML");
-  
-  this.vml = document.namespaces && document.namespaces['v']?true:false;
-  this.svg = document.namespaces && document.namespaces['v']?false:true;
-  
-  //echo LD-768 : Direct-X filters are disabled by default in IE10 and IE11 so they will not render legacy filters if we're running in a document mode of 8 or 9.
-  this.DXFilterSupported = !(this.ie &&
-							 (document.documentMode == 5 || document.documentMode == 6 || document.documentMode == 7 || document.documentMode == 8 || document.documentMode == 9) &&
-							 (navigator.userAgent.indexOf("Trident/6.0") != -1 || navigator.userAgent.indexOf("Trident/7.0") != -1));
-							 
-  this.bUseVML = IEScriptEnabled();
-  
   var player = null;
   try 
   {
@@ -900,10 +818,8 @@ function addRotateCSS(angle, hasShadow, width, height, xPos, yPos, shadowDirecti
 //Opacity is passed in as a number between 0-100
 function addOpacityCSS(opacityVal){
 	var opacityAttribute = '';
-	if(!(is.ie8 || is.ie9))
-		opacityAttribute += 'opacity: ' + (opacityVal/100.0) + ';';
-	else
-		opacityAttribute += 'filter: alpha(opacity=' + opacityVal + ');'
+	opacityAttribute += 'opacity: ' + (opacityVal/100.0) + ';'; 
+	opacityAttribute += 'filter: alpha(opacity=' + opacityVal + ');'
 	fOpacity = opacityVal;
 	return opacityAttribute;
 }
@@ -1725,19 +1641,4 @@ function parseKeyFromGDocURL(url)
 		return [ parts[1], parts[2] ];
 
 	return null;
-}
-
-//LHD --- LD-1407 Special security check
-function IEScriptEnabled()
-{
-	var bIsEnabled = true;
-	try{
-		var vmlCheck = document.createElement("v:oval");
-		if(typeof(vmlCheck.filters) != "object")
-			bIsEnabled = false;
-	}
-	catch(e){
-		bIsEnabled = false;
-	}
-	return bIsEnabled;
 }

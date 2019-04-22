@@ -122,7 +122,8 @@ function ObjInlineActionPlay( ) {
 							
 			if (this.flsPlayer.PercentLoaded() != 100) 
 				throw new Error('flash not loaded');
-	
+				
+			this.setFlashPlayer();	
 			if( !this.autoPlay )
 				this.flsPlayer.sendEvent('play');
 			this.autoPlay = true;
@@ -131,7 +132,7 @@ function ObjInlineActionPlay( ) {
 			var thisObj = this;
 			 setTimeout(function(){
 				thisObj.actionPlay();
-			 }, 1000);
+			 }, 100);
 		}
 	 }
   }
@@ -191,33 +192,13 @@ function ObjInlineActionStop( ) {
 }
 
 function ObjInlineActionShow( ) {
-  if( IsAudioObj(this) && IsHiddenAudioObj(this) ){
-	this.actionShowAudio();
-	return;
-  }
-
   if( this.isGrp || !this.isVisible() )
     this.onShow();
 }
 
 function ObjInlineActionHide( ) {
-  if( IsAudioObj(this) && !IsHiddenAudioObj(this) ){
-	this.actionHideAudio();
-	return;
-  }
-
   if( this.isGrp || this.isVisible() )
     this.onHide();
-}
-
-function ObjInlineActionShowAudio(){
-	this.v = true;
-	this.onShowAudio();
-}
-
-function ObjInlineActionHideAudio(){
-	this.v = false;
-	this.onHideAudio();
 }
 
 function ObjInlineActionLaunch( ) {
@@ -309,17 +290,6 @@ function ObjInlineActionChangeContents( value, align, fntId ) {
       if( varValue == "~~~null~~~" ) div = '<' + this.divTag + ' class="' + align + '"><span class="' + fntName + '">' + '</span></' + this.divTag + '>' 
       else div = '<' + this.divTag + ' class="' + align + '"><span class="' + fntName + '">' + varValue + '</span></' + this.divTag + '>'
     }
-	
-	if(this.heading > 0){
-		var splitDiv = div.split("<span");
-		
-		div = splitDiv[0] + "<h" + this.heading + "><span" + splitDiv[1];
-		
-		splitDiv = div.split("</span>")
-		
-		div = splitDiv[0] + "</span></h" + this.heading + ">" + splitDiv[1];
-	}
-	
     if( is.ns5 ) this.objLyr.ele.innerHTML = div
     else this.objLyr.write( div );
   }
@@ -496,17 +466,8 @@ function ObjInlineActionToggleShow( ) {
     for ( var i=0; i<this.childArray.length; i++ )
        eval( this.childArray[i] + ".actionToggleShow()");
   }
-  else if(this.objLyr.isVisible()){ 
-    //echo LD-975: Audio objects are always visible. They are moved 10000px off page when hidden. 
-	if( IsAudioObj(this) ){
-		if( IsHiddenAudioObj(this) ){
-			this.actionShow();
-		}
-		else this.actionHide();
-	}
-	else
-		this.actionHide();
-  }
+  else if(this.objLyr.isVisible()) 
+    this.actionHide();
   else 
     this.actionShow();
 }
@@ -681,8 +642,6 @@ p.actionPlay = ObjInlineActionPlay
 p.actionStop = ObjInlineActionStop
 p.actionShow = ObjInlineActionShow
 p.actionHide = ObjInlineActionHide
-p.actionShowAudio = ObjInlineActionShowAudio
-p.actionHideAudio = ObjInlineActionHideAudio
 p.actionLaunch = ObjInlineActionLaunch
 p.actionExit = ObjInlineActionExit
 p.actionChangeContents = ObjInlineActionChangeContents
@@ -691,8 +650,6 @@ p.actionToggleShow = ObjInlineActionToggleShow
 p.writeLayer = ObjInlineWriteLayer
 p.onShow = ObjInlineOnShow
 p.onHide = ObjInlineOnHide
-p.onShowAudio = ObjInlineOnShowAudio
-p.onHideAudio = ObjInlineOnHideAudio
 p.isVisible = ObjInlineIsVisible
 p.onSelChg = new Function()
 p.addChild = ObjInlineAddChild
@@ -772,21 +729,10 @@ p.clearEventsFlag = function(pos)
 }
 
 function ObjInlineBuild() {
-  var visible = this.v;
-  var leftPos = this.x;
-  //echo LD-975: Move the audio object WAY off of the page if it's initially hidden. Always keep the flash window visible. 
-  //JB the audio can't be played in IE if it is not visible, and customers do this all the time.
-  if( IsAudioObj(this) ){
-	visible = true;
-	
-	if(IsHiddenAudioObj(this))
-		leftPos = 10000;
-  }
-
   if( this.bgColor || this.clip )
-    this.css = buildCSS(this.name,leftPos,this.y,this.w,this.h,visible,this.z,this.bgColor,'noclip')
+    this.css = buildCSS(this.name,this.x,this.y,this.w,this.h,this.v,this.z,this.bgColor,'noclip')
   else
-    this.css = buildCSS(this.name,leftPos,this.y,this.w,null,visible,this.z,this.bgColor)
+    this.css = buildCSS(this.name,this.x,this.y,this.w,null,this.v,this.z,this.bgColor)
   var divStart
   var divEnd
   divStart = '<' + this.divTag + ' id="'+this.name+'"'
@@ -815,11 +761,8 @@ function ObjInlineActivate() {
         }
       }
     }
-    else{
-      if( this.v ) this.actionShow();
-	  
-	  if( IsHiddenAudioObj(this) ) this.actionHideAudio();
-	}
+    else
+      if( this.v ) this.actionShow()
   }
   if( this.capture & 4 ) {
     this.objLyr.ele.onmousedown = new Function("event", this.obj+".down(event); return false;")
@@ -917,38 +860,7 @@ function ObjInlineOnHide() {
     this.objLyr.doc.forms[0].blur();
 }
 
-function ObjInlineOnShowAudio(){
-  this.alreadyActioned = true;
-  this.objLyr.actionShowAudio(this.x);
-  for ( var i=0; i<this.childArray.length; i++ )
-  {
-    if ( !eval( this.childArray[i] + ".isVisible()") )
-      eval( this.childArray[i] + ".actionShowAudio(" + this.x + ")");
-  }
-  
-  if( this.matchObj )
-	this.drawLine();
-}
-
-function ObjInlineOnHideAudio(){
-  this.alreadyActioned = true;
-  for ( var i=0; i<this.childArray.length; i++ )
-     eval( this.childArray[i] + ".actionHideAudio()");
-  this.objLyr.actionHideAudio();
-
-  if( this.matchLine )
-	  this.matchLine.ResizeTo( -10, -10, -10, -10 );
-  
-  if( this.objLyr.doc.forms.length > 0 && this.objLyr.doc.forms[0].blur )
-    this.objLyr.doc.forms[0].blur();
-}
-
 function ObjInlineIsVisible() {
-
-  //echo LD-975: Audio object DOM elements are always visible. The inline object is what keeps track of it's hidden state. 
-  if(IsAudioObj(this) && IsHiddenAudioObj(this))
-	return false;
-	
   if( this.objLyr.isVisible() )
     return true;
   else
@@ -1285,16 +1197,3 @@ function ObjInlineAddEvent(time, fn) {
 
 }
 
-function IsHiddenAudioObj(audObj){
-	if(audObj.obj.indexOf("audio") > -1 && !audObj.v)
-		return true;
-		
-	return false;
-}
-
-function IsAudioObj(audObj){
-	if( audObj.obj.indexOf("audio") > -1 )
-		return true;
-	
-	return false;
-}

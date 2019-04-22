@@ -680,20 +680,16 @@ function Variable(name,defval,f,cm,frame,days,title, bHidden) {
     }
     else {
       if( frame == 'scorm' || frame == 'scorm2004' || frame == 'tincan' ) this.bSCORM = true
-      if (name.indexOf('CMI_Core') === 0)
-      {
-        this.origAICC = true;
-        this.aiccgroup = 'cmi';
-        var cmiprefix = ( frame == 'scorm2004' ? 'cmi' : 'cmi.core' );
-        if (name == 'CMI_Core_Entry')
-        {
-          this.name = cmiprefix + '.entry';
-          this.update();
+      if( name.indexOf('CMI_Core') == 0 ) {
+        this.origAICC = true
+        this.aiccgroup='cmi'
+        if( name == 'CMI_Core_Entry' ) {
+          this.name='cmi.core.entry'
+          this.update()
         }
-        else // 'CMI_Core_Exit'
-        {
-          this.name = cmiprefix + '.exit';
-          this.value = this.defVal;
+        else {
+          this.name='cmi.core.exit'
+          this.value=this.defVal
         }
       }
       else if ( name == 'CMI_Completion_Status' ) {
@@ -1329,7 +1325,7 @@ function getTitleMgr( testWnd, level )
           if( testWnd.name.indexOf( 'Trivantis_Dlg_' ) == 0 )
             return getTitleMgr( testWnd.parent, level+1 )
           else {
-            if( testWnd.name.indexOf( 'Trivantis_' ) == 0 && testWnd.opener )
+            if( testWnd.name.indexOf( 'Trivantis_' ) == 0 )
               return getTitleMgr( testWnd.opener, level+1 )
             else if( level < 2 )
               return getTitleMgr( testWnd.parent, level+1 )

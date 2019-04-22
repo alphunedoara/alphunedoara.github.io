@@ -9,7 +9,6 @@ var ocmNone = new Function( "return false" )
 function ObjText(n,a,x,y,w,h,v,z,c,d,cl) {
 	ObjInline.apply(this, arguments)
 	this.sline = 0
-	this.heading = 0;
 }
 
 { // Setup prototypes
@@ -31,8 +30,6 @@ p.addOutline = ObjInitOutline
 p.initSLine = ObjInitSLine
 p.activate = ObjTextActivate
 p.initList = ObjInitList
-p.setDegradations = ObjDegradeEffects
-p.addHeading = ObjAddHeading
 }
 
 function ObjTextActivate()
@@ -44,8 +41,6 @@ function ObjTextActivate()
 
 
 function ObjTextBuild() {
-  this.setDegradations();	//echo LD-768 : Check if we need to gracefully degrade effects
-
   var wCSS = this.w
   if( this.sline ) wCSS = -1
 
@@ -67,7 +62,7 @@ function ObjTextBuild() {
   xTextOffset = parseFloat(xTextOffset.toFixed(5));
   yTextOffset = parseFloat(yTextOffset.toFixed(5));
   
-  if(is.vml)
+  if(is.ie8 || is.ie9)
   {
  	//Due to limitations on IE8 and IE9 only one shadow can be applied
 	if(this.hasOuterShadow && this.hasTextShadow)
@@ -258,6 +253,10 @@ function ObjInitTextShadow(direction, depth, opacity, redHex, greenHex, blueHex,
 
 function ObjInitOpacity(opacity){
 	this.opacity = opacity;
+	
+	//echo bug 21691 : Graceful Degradation
+	if( (is.ie8 || is.ie9) && (this.r > 0 || this.opacity < 100 || this.hf == 1 || this.vf == 1) )
+		this.hasOuterShadow = false;
 }
 
 function ObjInitIe8Attr(xPos, yPos, width, height, offsetX, offsetY){
@@ -354,7 +353,7 @@ function ObjTextShadow(xOffset, yOffset, thisObj)
 {
 	var shadowCSS = '';
 	var blurRadius = thisObj.textShadowBlurRadius*2.4;
-	if(is.vml)
+	if(is.ie8 || is.ie9)
 	{
 		//echo bug 21656 : This is a graceful degradation
 		/*var red = (thisObj.textShadowRedHex ==0)?thisObj.textShadowRedHex+'0':thisObj.textShadowRedHex;
@@ -411,8 +410,7 @@ function ObjAddBorderCSS(thisObj)
 function ObjAddOutlineCSS(thisObj)
 {
 	var outlineCSS = '';
-	if(thisObj.hasOutline)
-		outlineCSS = 'outline-style:solid;outline-width:thin;outline-color:rgb('+thisObj.outlineRed+','+thisObj.outlineGreen+','+thisObj.outlineBlue+');';
+	outlineCSS = 'outline-style:solid;outline-width:thin;outline-color:rgb('+thisObj.outlineRed+','+thisObj.outlineGreen+','+thisObj.outlineBlue+');';
 	return outlineCSS;
 }
 
@@ -452,19 +450,19 @@ function ObjAddSVGBorder(thisObj)
 	}
 	else
 	{
-		var tlRed = Math.floor(thisObj.borderRed+((255-thisObj.borderRed)*(3/4))); 
-		var tlBlue = Math.floor(thisObj.borderBlue+((255-thisObj.borderBlue)*(3/4)));
-		var tlGreen = Math.floor(thisObj.borderGreen+((255-thisObj.borderGreen)*(3/4))); 
-		var brRed = Math.floor(thisObj.borderRed/4); 
-		var brBlue = Math.floor(thisObj.borderBlue/4); 
-		var brGreen = Math.floor(thisObj.borderGreen/4); 
+		var tlRed = Math.floor(thisObj.borderRed+((255-thisObj.borderRed)/2)); 
+		var tlBlue = Math.floor(thisObj.borderBlue+((255-thisObj.borderBlue)/2));
+		var tlGreen = Math.floor(thisObj.borderGreen+((255-thisObj.borderGreen)/2)); 
+		var brRed = Math.floor(thisObj.borderRed/2); 
+		var brBlue = Math.floor(thisObj.borderBlue/2); 
+		var brGreen = Math.floor(thisObj.borderGreen/2); 
 		svgDiv +='<linearGradient id="gradLeft'+thisObj.name+'" x1="0%" y1="0%" x2="100%" y2="0%">\n';
-		svgDiv +='<stop offset="0%" style="stop-color:rgb('+tlRed+','+tlGreen+','+tlBlue+');stop-opacity:1" />\n';
-		svgDiv +='<stop offset="100%" style="stop-color:rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+');stop-opacity:1" />\n';
+		svgDiv +='<stop offset="0%" style="stop-color:rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+');stop-opacity:1" />\n';
+		svgDiv +='<stop offset="100%" style="stop-color:rgb('+tlRed+','+tlGreen+','+tlBlue+');stop-opacity:1" />\n';
 		svgDiv +='</linearGradient>\n';
 		svgDiv +='<linearGradient id="gradTop'+thisObj.name+'" x1="0%" y1="0%" x2="0%" y2="100%">\n';
-		svgDiv +='<stop offset="0%" style="stop-color:rgb('+tlRed+','+tlGreen+','+tlBlue+');stop-opacity:1" />\n';
-		svgDiv +='<stop offset="100%" style="stop-color:rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+');stop-opacity:1" />\n';
+		svgDiv +='<stop offset="0%" style="stop-color:rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+');stop-opacity:1" />\n';
+		svgDiv +='<stop offset="100%" style="stop-color:rgb('+tlRed+','+tlGreen+','+tlBlue+');stop-opacity:1" />\n';
 		svgDiv +='</linearGradient>\n';
 		svgDiv +='<linearGradient id="gradBottom'+thisObj.name+'" x1="0%" y1="0%" x2="0%" y2="100%">\n';
 		svgDiv +='<stop offset="0%" style="stop-color:rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+');stop-opacity:1" />\n';
@@ -488,12 +486,7 @@ function ObjAddSVGBorder(thisObj)
 function ObjAddVMLBorder(thisObj)
 {
 	var vmlDiv = '';
-	vmlDiv = '<div id="border" style="width:'+ (thisObj.w) +'px;height:'+ (thisObj.h) +'px;';
-	if(thisObj.hasOutline)
-		vmlDiv += 'position:absolute;left:-1px;top:-1px;">\n'
-	else
-		vmlDiv +='">\n';
-	
+	vmlDiv = '<div id="border" style="width:'+ (thisObj.w) +'px;height:'+ (thisObj.h) +'px;">\n';
 	if(thisObj.lineStyle === 3) //Lowered Border
 	{
 		var tlRed = Math.floor(thisObj.borderRed/2); 
@@ -502,31 +495,31 @@ function ObjAddVMLBorder(thisObj)
 		var brRed = Math.floor(thisObj.borderRed+((255-thisObj.borderRed)/2)); 
 		var brBlue = Math.floor(thisObj.borderBlue+((255-thisObj.borderBlue)/2)); 
 		var brGreen = Math.floor(thisObj.borderGreen+((255-thisObj.borderGreen)/2)); 
-		vmlDiv +='<v:polyline points="'+thisObj.borderLeft+'" strokeweight="0px"> <v:stroke dashstyle="solid" opacity="0" />\n';
-		vmlDiv +='<v:fill type="gradient" color="rgb('+tlRed+','+tlGreen+','+tlBlue+')" color2="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" angle="90"></v:fill>\n </v:polyline>\n';
-		vmlDiv +='<v:polyline points="'+thisObj.borderTop+'" strokeweight="0px"> <v:stroke dashstyle="solid" opacity="0" />\n';
+		vmlDiv +='<v:polyline points="'+thisObj.borderLeft+'">\n';
 		vmlDiv +='<v:fill type="gradient" color="rgb('+tlRed+','+tlGreen+','+tlBlue+')" color2="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" angle="0"></v:fill>\n </v:polyline>\n';
-		vmlDiv +='<v:polyline points="'+thisObj.borderBottom+'" strokeweight="0px"> <v:stroke dashstyle="solid" opacity="0" />\n';
-		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+brRed+','+brGreen+','+brBlue+')" opacity2="75%" angle="180"></v:fill>\n </v:polyline>\n';
-		vmlDiv +='<v:polyline points="'+thisObj.borderRight+'" strokeweight="0px"> <v:stroke dashstyle="solid" opacity="0" />\n';
+		vmlDiv +='<v:polyline points="'+thisObj.borderTop+'">\n';
+		vmlDiv +='<v:fill type="gradient" color="rgb('+tlRed+','+tlGreen+','+tlBlue+')" color2="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" angle="90"></v:fill>\n </v:polyline>\n';
+		vmlDiv +='<v:polyline points="'+thisObj.borderBottom+'">\n';
 		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+brRed+','+brGreen+','+brBlue+')" opacity2="75%" angle="270"></v:fill>\n </v:polyline>\n';
+		vmlDiv +='<v:polyline points="'+thisObj.borderRight+'">\n';
+		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+brRed+','+brGreen+','+brBlue+')" opacity2="75%" angle="180"></v:fill>\n </v:polyline>\n';
 	}
 	else
 	{
-		var tlRed = Math.floor(thisObj.borderRed+((255-thisObj.borderRed)*(3/4))); 
-		var tlBlue = Math.floor(thisObj.borderBlue+((255-thisObj.borderBlue)*(3/4)));
-		var tlGreen = Math.floor(thisObj.borderGreen+((255-thisObj.borderGreen)*(3/4))); 
-		var brRed = Math.floor(thisObj.borderRed/4); 
-		var brBlue = Math.floor(thisObj.borderBlue/4); 
-		var brGreen = Math.floor(thisObj.borderGreen/4); 
-		vmlDiv +='<v:polyline points="'+thisObj.borderLeft+'" strokeweight="0px"> <v:stroke dashstyle="solid" opacity="0" />\n';
-		vmlDiv +='<v:fill type="gradient" color2="rgb('+tlRed+','+tlGreen+','+tlBlue+')" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" opacity="90%" opacity2="65%" angle="90"></v:fill>\n </v:polyline>\n';
-		vmlDiv +='<v:polyline points="'+thisObj.borderTop+'" strokeweight="0px"> <v:stroke dashstyle="solid" opacity="0" />\n';
-		vmlDiv +='<v:fill type="gradient" color2="rgb('+tlRed+','+tlGreen+','+tlBlue+')" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" opacity="90%" opacity2="65%" angle="0"></v:fill>\n </v:polyline>\n';
-		vmlDiv +='<v:polyline points="'+thisObj.borderBottom+'" strokeweight="0px"> <v:stroke dashstyle="solid" opacity="0" />\n';
-		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+brRed+','+brGreen+','+brBlue+')" angle="180" opacity2="90%"></v:fill>\n </v:polyline>\n';
-		vmlDiv +='<v:polyline points="'+thisObj.borderRight+'" strokeweight="0px"> <v:stroke dashstyle="solid" opacity="0" />\n';
-		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+brRed+','+brGreen+','+brBlue+')" angle="270" opacity2="90%"></v:fill>\n </v:polyline>\n';
+		var tlRed = Math.floor(thisObj.borderRed+((255-thisObj.borderRed)/2)); 
+		var tlBlue = Math.floor(thisObj.borderBlue+((255-thisObj.borderBlue)/2));
+		var tlGreen = Math.floor(thisObj.borderGreen+((255-thisObj.borderGreen)/2)); 
+		var brRed = Math.floor(thisObj.borderRed/2); 
+		var brBlue = Math.floor(thisObj.borderBlue/2); 
+		var brGreen = Math.floor(thisObj.borderGreen/2); 
+		vmlDiv +='<v:polyline points="'+thisObj.borderLeft+'">\n';
+		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+tlRed+','+tlGreen+','+tlBlue+')" opacity="90%" opacity2="65%" angle="0"></v:fill>\n </v:polyline>\n';
+		vmlDiv +='<v:polyline points="'+thisObj.borderTop+'">\n';
+		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+tlRed+','+tlGreen+','+tlBlue+')" opacity="90%" opacity2="65%" angle="90"></v:fill>\n </v:polyline>\n';
+		vmlDiv +='<v:polyline points="'+thisObj.borderBottom+'">\n';
+		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+brRed+','+brGreen+','+brBlue+')" angle="270"></v:fill>\n </v:polyline>\n';
+		vmlDiv +='<v:polyline points="'+thisObj.borderRight+'">\n';
+		vmlDiv +='<v:fill type="gradient" color="rgb('+thisObj.borderRed+','+thisObj.borderGreen+','+thisObj.borderBlue+')" color2="rgb('+brRed+','+brGreen+','+brBlue+')" angle="180"></v:fill>\n </v:polyline>\n';
 	}	
 	vmlDiv += '</div>\n';
 	
@@ -695,6 +688,13 @@ function ObjAdjustList(thisObj)
 			
 		}
 	}	
+	if(ele && ol.length >0)
+	{
+		if(ele.style.width.length > 0)
+			ele.style.width = parseInt(ele.style.width)+marg+'px';
+		else
+			ele.style.width = thisObj.w+marg+'px';
+	}
 	ObjListAlign(thisObj);
 	
 }
@@ -743,6 +743,13 @@ function ObjSetupUL(thisObj)
 		{
 			upUl = ul[index];
 			upUl.style.marginLeft = 10+'px';
+		}
+		if(ele)
+		{
+			if(ele.style.width.length > 0)
+				ele.style.width = parseInt(ele.style.width)+10+'px';
+			else
+				ele.style.width = thisObj.w+10+'px';
 		}
 	}
 }
@@ -1258,56 +1265,5 @@ function ObjAdjustTxtIndent(thisObj, liItem)
 			}
 		}
 		tmpLI.style.textIndent =  ((-1)*txtIndent)+'px';
-	}
-}
-
-//echo LD-768 : Putting all degradation rules for IE into this function.
-//echo bug 21691 : Graceful Degradation
-function ObjDegradeEffects()
-{
-	if(is.vml)
-	{
-		this.hasTextShadow = false;
-		
-		if(this.opacity < 100){
-			this.hasOuterShadow = false;
-			return;
-		}
-		if(this.r > 0){
-			this.hasOuterShadow = false;
-			return;
-		}
-		if(this.vf == 1 || this.hf == 1){
-			this.hasOuterShadow = false;
-			return;
-		}
-		if(is.ie8){
-			this.hasOuterShadow = this.outerShadowDepth == 0 ? false : true;
-		}
-	}
-	
-	return;
-}
-
-function ObjAddHeading(num){
-	switch(num){
-		case 1:
-			this.heading = 1;
-			break;
-		case 2:
-			this.heading = 2;
-			break;
-		case 3:
-			this.heading = 3;
-			break;
-		case 4:
-			this.heading = 4;
-			break;
-		case 5:
-			this.heading = 5;
-			break;
-		case 6:
-			this.heading = 6;
-			break;
 	}
 }
